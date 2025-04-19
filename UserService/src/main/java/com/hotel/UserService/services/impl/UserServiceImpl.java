@@ -4,6 +4,7 @@ import com.hotel.UserService.entities.Hotel;
 import com.hotel.UserService.entities.Rating;
 import com.hotel.UserService.entities.User;
 import com.hotel.UserService.exception.ResourceNotFoundException;
+import com.hotel.UserService.external.services.HotelService;
 import com.hotel.UserService.repositories.UserRepository;
 import com.hotel.UserService.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,10 +29,8 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private RestTemplate restTemplate;
 
-/*
     @Autowired
     private HotelService hotelService;
-*/
 
     private Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
@@ -63,10 +62,11 @@ public class UserServiceImpl implements UserService {
         ratings.stream().map(rating -> {
             // api call to hotel service to get the hotel
             // using getForEntity since we can get only one record
-            ResponseEntity<Hotel> hotelResponse = restTemplate.getForEntity("http://HOTEL-SERVICE/hotels/" + rating.getHotelId(), Hotel.class);
-            logger.info("response status code {}", hotelResponse.getStatusCode().toString());
-            logger.info("response body {}", hotelResponse.getBody());
-            Hotel hotel = hotelResponse.getBody();
+//            ResponseEntity<Hotel> hotelResponse = restTemplate.getForEntity("http://HOTEL-SERVICE/hotels/" + rating.getHotelId(), Hotel.class);
+            Hotel hotel = hotelService.getHotel(rating.getHotelId());
+//            logger.info("response status code {}", hotelResponse.getStatusCode().toString());
+//            logger.info("response body {}", hotelResponse.getBody());
+//            Hotel hotel = hotelResponse.getBody();
 
             // set hotel to rating
             rating.setHotel(hotel);
