@@ -1,19 +1,23 @@
 package com.hotel.UserService.services.impl;
 
+import com.hotel.UserService.entities.Hotel;
 import com.hotel.UserService.entities.Rating;
 import com.hotel.UserService.entities.User;
 import com.hotel.UserService.exception.ResourceNotFoundException;
 import com.hotel.UserService.repositories.UserRepository;
 import com.hotel.UserService.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -51,9 +55,27 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User with given id not found on server !! : " + userId));
         // fetch rating of the above user from RATING SERVICE
         // http://localhost:8083/ratings/users/797ad556-9933-4880-b441-c60635c6d233
-        ArrayList<Rating> ratingsForUser = restTemplate.getForObject("http://localhost:8083/ratings/users/" + user.getUserId(), ArrayList.class);
+        Rating[] ratingsForUser = restTemplate.getForObject("http://localhost:8083/ratings/users/" + user.getUserId(), Rating[].class);
         logger.info("{}", ratingsForUser);
-        user.setRatings(ratingsForUser);
+
+        List<Rating> ratings = Arrays.stream(ratingsForUser).toList();
+
+        ratings.stream().map(rating -> {
+            // api call to hotel service to get the hotel
+            // using getForEntity since we can get only one record
+            ResponseEntity<Hotel> hotelResponse = restTemplate.getForEntity("http://localhost:8082/hotels/" + rating.getHotelId(), Hotel.class);
+            logger.info("response status code {}", hotelResponse.getStatusCode().toString());
+            logger.info("response body {}", hotelResponse.getBody());
+            Hotel hotel = hotelResponse.getBody();
+
+            // set hotel to rating
+            rating.setHotel(hotel);
+
+            return new Rating();
+
+        }).collect(Collectors.toList());
+
+        user.setRatings(ratings);
         return user;
     }
 }
